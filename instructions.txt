@@ -1,0 +1,44 @@
+Set up Jessie light wifi:
+https://pirobotblog.wordpress.com/2016/12/25/setting-up-jessie-light-25-11-2016/
+
+Update and upgrade
+sudo apt-get update
+sudo apt-get upgrade
+
+___________________________
+
+sudo apt-get install avrdude
+sudo apt-get install mono-complete
+sudo apt-get install git
+___________________________
+
+GIT actions
+
+// Delete repo
+rm -rf
+
+// Clone repo
+git clone https://github.com/eried/ArduboyCollection.git repo
+
+// Update local repo
+cd repo
+git reset --hard HEAD
+git clean -xffd
+git pull
+
+Copy the files to /home/pi/arduboy/
+
+___________________________
+
+Add to the startup
+sudo nano /etc/rc.local
+
+Replace:
+exit 0
+
+with:
+mono /home/pi/arduboy/uploader.exe &
+exit 0
+
+
+
