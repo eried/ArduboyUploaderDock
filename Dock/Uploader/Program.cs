@@ -5,18 +5,19 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Uploader
 {
     class Program
     {
-        static Stopwatch lastConnectedArduboy = new Stopwatch();
-        private static bool _waitDisconnect;
+        private static readonly Stopwatch TimeSinceLastPingReceived = Stopwatch.StartNew(), 
+            TimeSinceLastPingSent = Stopwatch.StartNew();
+        private static bool _waitForTheDeviceToBeDisconnected;
+        private const char CommandEnd = '>', CommandStart = '<', CommandSplit = ':';
+        private static string _buffer;
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             Environment.CurrentDirectory = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
 
@@ -28,19 +29,7 @@ namespace Uploader
 
                     if (!string.IsNullOrEmpty(arduboy))
                     {
-                        var s = new SafeSerialPort()
-                        {
-                            BaudRate = 115200,
-                            PortName = arduboy,
-                            RtsEnable = true,
-                        };
-
-                        s.Open();
-                        s.BeginReceivingData();
-                        s.DataReceived += S_DataReceived;
-                        Log("Connected to " + s.PortName);
-                        lastConnectedArduboy.Restart();
-                        s.WriteLine("PING");
+                        var s = ConnectToArduboy(arduboy);
 
                         do
                         {
@@ -50,7 +39,7 @@ namespace Uploader
                                 {
                                     Log("Lost connection...");
                                     s.Close();
-                                    Thread.Sleep(1000);
+                                    Thread.Sleep(500);
                                     s.Open();
 
                                     if (!s.IsOpen)
@@ -58,7 +47,7 @@ namespace Uploader
                                 }
                                 else
                                 {
-                                    if (lastConnectedArduboy.ElapsedMilliseconds > 3000)
+                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 500)
                                     {
                                         Log("Not responding to PING...");
                                         SendUploader(s);
@@ -71,7 +60,7 @@ namespace Uploader
                                 break;
                             }
 
-                            Thread.Sleep(100);
+                            Thread.Sleep(10);
 
                         } while (true);
                     }
@@ -83,93 +72,165 @@ namespace Uploader
 
                 Log("Nothing connected. Retrying soon");
 
-                if (_waitDisconnect)
+                if (_waitForTheDeviceToBeDisconnected)
                 {
                     Log("Waiting");
-                    Thread.Sleep(4000);
+                    Thread.Sleep(3000);
                     Log("... for disconnection.");
                     WaitForTheArduboy();
-                    _waitDisconnect = false;
+                    _waitForTheDeviceToBeDisconnected = false;
                 }
                 else
-                    Thread.Sleep(1000);
+                    Thread.Sleep(200);
             } while (true);
+        }
+
+        private static SafeSerialPort ConnectToArduboy(string arduboy)
+        {
+            var s = new SafeSerialPort()
+            {
+                BaudRate = 115200,
+                PortName = arduboy,
+                RtsEnable = true,
+            };
+
+            s.Open();
+            s.BeginReceivingData();
+            s.DataReceived += S_DataReceived;
+            Log("Connected to " + s.PortName);
+            TimeSinceLastPingReceived.Restart();
+            Ping(s); // Initial ping
+            return s;
+        }
+
+        private static void Ping(SerialPort s)
+        {
+            if (TimeSinceLastPingSent.ElapsedMilliseconds <= 100) return;
+
+            SendArduboyCommand(s,"PING");
+            TimeSinceLastPingSent.Restart();
+        }
+
+        private static void SendArduboyCommand(SerialPort s, string cmd)
+        {
+            if(s.IsOpen)
+                s.Write(CommandStart + cmd + CommandEnd);
         }
 
         private static void S_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            var sp = (SerialPort)sender;
+            var s = (SerialPort)sender;
+            _buffer += s.ReadExisting().Replace("\r", "").Replace("\n", "");
 
-            var cmd = sp.ReadExisting().Replace("\r", "").Replace("\n", "").Trim().Split(':');
+            if (_buffer.Contains(CommandEnd))
+            {
+                var tmp = _buffer.Split(CommandEnd);
+                var includeFinalItem = _buffer[_buffer.Length - 1] == CommandEnd;
+                for (var i = 0; i < tmp.Length-(includeFinalItem?0:1); i++)
+                {
+                    if (!string.IsNullOrEmpty(tmp[i]) && tmp[i][0] == CommandStart)
+                    {
+                        tmp[i] = tmp[i].TrimStart(CommandStart);
+                        ProcessCommand(tmp[i].Split(CommandSplit), s);
+                    }
+                }
+
+                _buffer = !includeFinalItem ? tmp.Last() : "";
+            }      
+        }
+
+        private static void ProcessCommand(IReadOnlyList<string> cmd, SerialPort s)
+        {
+            Ping(s);
+            var considerCommandReceivedAsPing = true;
+
             switch (cmd[0])
             {
                 case "PING":
                 case "PONG":
-                    Log("PING/PONG received");
-                    sp.WriteLine("PING");
-                    lastConnectedArduboy.Restart();
+                    /*Log("PING/PONG received");
+                    Ping(s);
+                    TimeSinceLastPingReceived.Restart();*/
                     break;
 
-                case "REPO":
-                    Log("REPO received");
+                case "REPOSIZE":
+                    Log("REPO SIZE received");
 
-                    foreach(var hex in Directory.GetFiles("repo","*.hex", SearchOption.AllDirectories))
+                    /*foreach (var hex in Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories))
                     {
                         var gamePath = Path.GetDirectoryName(hex);
                         var game = Path.GetFileName(gamePath);
                         var category = Path.GetFileName(Path.GetDirectoryName(gamePath));
 
-                        sp.Write(category.Substring(0, Math.Min(3, category.Length)) + "/" + game.Substring(0, Math.Min(6, game.Length)) + " ");
-                    }
+                        s.Write(category.Substring(0, Math.Min(3, category.Length)) + "/" + game.Substring(0, Math.Min(6, game.Length)) + " ");
+                    }*/
+                    SendArduboyCommand(s, Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories).Length+"");
+                    break;
 
-                    lastConnectedArduboy.Restart();
+                case "REPONAME":
+                    Log("REPO NAME received");
+
+                    /*foreach (var hex in Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories))
+                    {
+                        var gamePath = Path.GetDirectoryName(hex);
+                        var game = Path.GetFileName(gamePath);
+                        var category = Path.GetFileName(Path.GetDirectoryName(gamePath));
+
+                        s.Write(category.Substring(0, Math.Min(3, category.Length)) + "/" + game.Substring(0, Math.Min(6, game.Length)) + " ");
+                    }*/
+
+                    //SendArduboyCommand(s, Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories)[] + "");
                     break;
 
                 case "UPDATE":
                     Log("UPDATE received");
-                    SendUploader(sp);
+                    SendUploader(s);
                     Log("Uploader sent. Waiting");
                     break;
 
                 case "SEND":
                     Log("SEND received");
-                    sp.Close();
-                    lastConnectedArduboy.Reset();
+                    s.Close();
+                    considerCommandReceivedAsPing = false;
+                    TimeSinceLastPingReceived.Reset();
                     ResetAndWait();
-                    SendArduboyGame(cmd[1],true);
+                    SendArduboyGame(cmd[1], true);
                     Log("Game sent. Waiting");
                     break;
 
                 case "TIME":
                     Log("TIME received");
-                    sp.WriteLine(DateTime.Now.ToShortDateString());
-                    sp.WriteLine(DateTime.Now.ToShortTimeString());
+                    /*s.WriteLine(DateTime.Now.ToShortDateString());
+                    s.WriteLine(DateTime.Now.ToShortTimeString());*/
                     break;
 
                 case "ABOUT":
                     Log("ABOUT received");
-                    sp.WriteLine("Arduboy Uploader Dock");
-                    sp.WriteLine("v0.1 20170712" + Environment.NewLine);
-                    sp.WriteLine("Erwin Ried");
-
+                    /*s.WriteLine("Arduboy Uploader Dock");
+                    s.WriteLine("v0.1 20170712" + Environment.NewLine);
+                    s.WriteLine("Erwin Ried");*/
                     break;
 
                 case "SHUTDOWN":
-                    lastConnectedArduboy.Reset();
+                    TimeSinceLastPingReceived.Reset();
                     Log("SHUTDOWN received");
                     Process.Start(new ProcessStartInfo() { FileName = "sudo", Arguments = "halt" });
                     break;
 
                 default:
                     Log("Received: " + cmd[0]);
+                    considerCommandReceivedAsPing = false;
                     break;
             }
+
+            if (considerCommandReceivedAsPing)
+                TimeSinceLastPingReceived.Restart();
         }
 
         private static void SendUploader(SerialPort sp)
         {
             sp.Close();
-            lastConnectedArduboy.Reset();
+            TimeSinceLastPingReceived.Reset();
             ResetAndWait();
             SendArduboyGame(GetDockHex(), false);
         }
@@ -208,7 +269,7 @@ namespace Uploader
 
             p.WaitForExit(10000);
 
-            _waitDisconnect = waitForDisconnection;
+            _waitForTheDeviceToBeDisconnected = waitForDisconnection;
             Log("Sent!");
         }
 
