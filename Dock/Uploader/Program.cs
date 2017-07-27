@@ -13,7 +13,7 @@ namespace Uploader
     {
         private static readonly Stopwatch TimeSinceLastPingReceived = Stopwatch.StartNew(), 
             TimeSinceLastPingSent = Stopwatch.StartNew();
-        private static bool _waitForTheDeviceToBeDisconnected, _firstTime=true;
+        private static bool _waitForTheDeviceToBeDisconnected;
         private const char CommandEnd = '>', CommandStart = '<', CommandSplit = ':';
         private static string _buffer;
 
@@ -47,7 +47,7 @@ namespace Uploader
                                 }
                                 else
                                 {
-                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 1500)
+                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 2000)
                                     {
                                         Log("Not responding to PING...");
                                         SendUploader(s);
@@ -207,16 +207,11 @@ namespace Uploader
 
                 case "TIME":
                     Log("TIME received");
-                    SendResponseToArduboy(s, ((long)ConvertToUnixTimestamp(DateTime.Now.AddHours(3)))+"");
-                    /*s.WriteLine(DateTime.Now.ToShortDateString());
-                    s.WriteLine(DateTime.Now.ToShortTimeString());*/
+                    SendResponseToArduboy(s, ((long)ConvertToUnixTimestamp(DateTime.Now))+"");
                     break;
 
                 case "ABOUT":
                     Log("ABOUT received");
-                    /*s.WriteLine("Arduboy Uploader Dock");
-                    s.WriteLine("v0.1 20170712" + Environment.NewLine);
-                    s.WriteLine("Erwin Ried");*/
                     break;
 
                 case "SHUTDOWN":
