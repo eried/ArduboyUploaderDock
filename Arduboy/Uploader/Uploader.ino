@@ -1,4 +1,5 @@
 #include <Arduboy2.h>
+#include <TimeLib.h>
 #include "sprites.h"
 Sprites sprites;
 Arduboy2 arduboy;
@@ -9,8 +10,8 @@ char selectedItem = 0;
 const byte maximumItems = 5;
 String menuItems[] = { "Browse collection", "Clock", "Dock settings", "Update dock app", /*"Send game", "Send ANOTHER game",*/ "Charge mode" };
 
-const byte MENU = 0, WAITING = 1, SHUTDOWN = 99, FAIL = 98, TRANSFER = 10, REPO = 11, CLOCK = 12;
-byte currentMode = CLOCK;
+const byte MENU = 0, WAITING = 1, SHUTDOWN = 99, FAIL = 98, TRANSFER = 10, REPO = 30, REPOINIT = 31, CLOCK = 20, CLOCKINIT = 21;
+byte currentMode = MENU;
 int error_frame = 0, transfer_frame = 0;
 bool booting = true;
 
@@ -46,7 +47,7 @@ void doRepo()
 
 bool pendingAnswerFromDock = false;
 String received = "";
-bool getDockInt(String command, int *output)
+bool getDockInt(String command, long *output)
 {
   if (!pendingAnswerFromDock)
 
@@ -89,19 +90,11 @@ void doMenu()
     switch (selectedItem)
     {
       case 0:
-        int r;
-        if (getDockInt("<REPOSIZE>", &r))
-        {
-          arduboy.println(r);
-          arduboy.display();
-          delay(600);
-        }
-        currentMode = REPO;
+        currentMode = REPOINIT;
         break;
 
       case 1:
-        Serial.print("<TIME>");
-        //startclock();
+        currentMode = CLOCKINIT;
         break;
 
       case 2:
@@ -166,6 +159,7 @@ void loop()
   else
   {
     ping();
+    long tmp;
 
     switch (currentMode)
     {
@@ -178,6 +172,23 @@ void loop()
 
       case WAITING:
         arduboy.println("Waiting for dock");
+        break;
+
+      case REPOINIT:
+        if (getDockInt("<REPOSIZE>", &tmp))
+        {
+          arduboy.println(tmp);
+          arduboy.display();
+          currentMode = REPO;
+        }
+        break;
+
+      case CLOCKINIT:
+        if (getDockInt("<TIME>", &tmp))
+        {
+          setTime(tmp);
+          currentMode = CLOCK;
+        }
         break;
 
       case CLOCK:
@@ -247,8 +258,8 @@ void readSerial()
 }
 
 const byte paddlew = 20, paddleh = 3, paddley = HEIGHT - paddleh;
-double ballx = 4, bally = 4;
-double ballspeedx = -0.4, ballspeedy = -0.4;
+double ballx = 0, bally = 15, paddlex = (WIDTH - paddlew) / 2;
+double ballspeedx = -1.35, ballspeedy = -1.1;
 const byte ballsize = 3;
 void doClock()
 {
@@ -256,33 +267,26 @@ void doClock()
   lastReceivedPing = millis();
 
   // Draw paddle
-  byte x = (WIDTH - paddlew) / 2;
-  arduboy.fillRect(x, paddley, paddlew, paddleh);
+  arduboy.fillRect(paddlex, paddley, paddlew, paddleh);
+
+  paddlex -= (paddlex + (paddlew / 2) - ballx) / ((1 + HEIGHT - bally) / 2);
 
   // Draw time
   arduboy.setTextSize(3);
-  arduboy.setCursor((WIDTH - (5 * 18)) / 2, 0);
-  arduboy.print("12:00");
+  arduboy.setCursor((WIDTH - ((hour() < 10 ? 4 : 5) * 18)) / 2, 10);
+  arduboy.print(hour());
+  arduboy.print(":");
+  arduboy.print(minute() < 10 ? "0" : "");
+  arduboy.print(minute());
+
+  if (ballx < 0 || ballx > WIDTH || (ballx > 2 && ballx < WIDTH - 2 && ( arduboy.getPixel(ballx, bally + 1) || arduboy.getPixel(ballx + 3, bally + 1))))
+    ballspeedx *= -1;
+
+  if (bally < 0 || bally > HEIGHT || (bally > 2 && bally < HEIGHT - paddleh - 1 && ( arduboy.getPixel(ballx + 2, bally) || arduboy.getPixel(ballx + 1, bally + 3))))
+    ballspeedy *= -1;
 
   // Draw ball
-  arduboy.fillCircle(ballx, bally, ballsize, ballsize);
+  arduboy.fillRect(ballx, bally, ballsize, ballsize);
   ballx += ballspeedx;
   bally += ballspeedy;
-
-  if (ballx < 0 || ballx > WIDTH)
-    ballspeedx *= -1;
-  else if (ballx > 0)
-    ballspeedx *= arduboy.getPixel(ballx + ballsize / 2, bally) == WHITE ? -1 : 1;
-  else
-    ballspeedx *= arduboy.getPixel(ballx + ballsize / 2, bally + ballsize) == WHITE ? -1 : 1;
-
-  if (bally < 0 || bally > HEIGHT)
-    ballspeedy *= -1;
-  else if (bally > 0)
-    ballspeedy *= arduboy.getPixel(ballx, bally + ballsize / 2) == WHITE ? -1 : 1;
-  else
-    ballspeedy *= arduboy.getPixel(ballx + ballsize / 2, bally + ballsize / 2) == WHITE ? -1 : 1;
-
-  // Collisions with text
-
 }
