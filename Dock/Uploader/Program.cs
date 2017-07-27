@@ -47,7 +47,7 @@ namespace Uploader
                                 }
                                 else
                                 {
-                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 500)
+                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 1000)
                                     {
                                         Log("Not responding to PING...");
                                         SendUploader(s);
@@ -107,11 +107,11 @@ namespace Uploader
         {
             if (TimeSinceLastPingSent.ElapsedMilliseconds <= 100) return;
 
-            SendArduboyCommand(s,"PING");
+            SendResponseToArduboy(s,"PING");
             TimeSinceLastPingSent.Restart();
         }
 
-        private static void SendArduboyCommand(SerialPort s, string cmd)
+        private static void SendResponseToArduboy(SerialPort s, string cmd)
         {
             if(s.IsOpen)
                 s.Write(CommandStart + cmd + CommandEnd);
@@ -164,7 +164,7 @@ namespace Uploader
 
                         s.Write(category.Substring(0, Math.Min(3, category.Length)) + "/" + game.Substring(0, Math.Min(6, game.Length)) + " ");
                     }*/
-                    SendArduboyCommand(s, Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories).Length+"");
+                    SendResponseToArduboy(s, Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories).Length+"");
                     break;
 
                 case "REPONAME":
