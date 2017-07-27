@@ -57,10 +57,11 @@ bool getDockInt(String command, long *output)
   }
   else
   {
-    if (received)
+    if (received.length())
     {
       pendingAnswerFromDock = false;
       *output = received.toInt();
+      received = "";
       return true;
     }
   }
@@ -70,7 +71,7 @@ bool getDockInt(String command, long *output)
 void doMenu()
 {
   arduboy.pollButtons();
-  arduboy.println("DOCK MENU V06");
+  arduboy.println("DOCK MENU V07");
 
   if (arduboy.justReleased(DOWN_BUTTON))
     selectedItem++;
@@ -146,11 +147,6 @@ void loop()
 
   if (millis() - lastReceivedPing > (booting ? 2000 : 1000))
   {
-    arduboy.println(millis() - lastReceivedPing);
-    arduboy.display();
-    /*arduboy.println("Please, put me in my");
-      arduboy.println("dock...");*/
-
     sprites.drawSelfMasked(0, 0, error, error_frame);
     if (arduboy.everyXFrames(30)) error_frame++;
     if (error_frame > 2) error_frame = 0;
@@ -245,7 +241,12 @@ void readSerial()
             lastReceivedPing = millis();
           }
           else
+          {
+            arduboy.print(received);
+            arduboy.display();
+            delay(600);
             received = buffer;
+          }
           return;
 
         default:
