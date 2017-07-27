@@ -9,8 +9,8 @@ char selectedItem = 0;
 const byte maximumItems = 5;
 String menuItems[] = { "Browse collection", "Clock", "Dock settings", "Update dock app", /*"Send game", "Send ANOTHER game",*/ "Charge mode" };
 
-const byte MENU = 0, WAITING = 1, SHUTDOWN = 99, FAIL = 98, TRANSFER = 10, REPO = 11;
-byte currentMode = MENU;
+const byte MENU = 0, WAITING = 1, SHUTDOWN = 99, FAIL = 98, TRANSFER = 10, REPO = 11, CLOCK = 12;
+byte currentMode = CLOCK;
 int error_frame = 0, transfer_frame = 0;
 bool booting = true;
 
@@ -24,7 +24,7 @@ void SwitchToTransfer()
 void setup()
 {
   arduboy.boot();
-  arduboy.setFrameRate(30);
+  arduboy.setFrameRate(60);
   arduboy.setTextWrap(true);
 
   Serial.begin(115200);
@@ -35,7 +35,6 @@ void setup()
 }
 
 int repoTotalGames = -1, repoSelectedGame = -1;
-
 
 void doRepo()
 {
@@ -90,6 +89,7 @@ void doMenu()
     switch (selectedItem)
     {
       case 0:
+<<<<<<< HEAD
         int r;
         if (getDockInt("<REPOSIZE>", &r))
         {
@@ -97,6 +97,37 @@ void doMenu()
           arduboy.display();
           delay(600);
         }
+=======
+        //Serial.println("REPO:0"); // Get page 0
+        /*arduboy.clear();
+          arduboy.println("->1010");
+          arduboy.println("  2048");
+          arduboy.println("  ABAsm DP1");
+          arduboy.println("  Abshell");
+          arduboy.println("  abSynth FM");
+          arduboy.println("  APara");
+          arduboy.println("  Arcodia");
+          arduboy.display();
+
+          while (arduboy.notPressed(DOWN_BUTTON))ping();
+
+          arduboy.clear();
+          arduboy.println("  1010");
+          arduboy.println("->2048");
+          arduboy.println("  ABAsm DP1");
+          arduboy.println("  Abshell");
+          arduboy.println("  abSynth FM");
+          arduboy.println("  APara");
+          arduboy.println("  Arcodia");
+          arduboy.display();
+
+          while (arduboy.notPressed(A_BUTTON))ping();
+
+          Serial.println("SEND:Puzzle.hex");
+          SwitchToTransfer();*/
+        currentMode = REPO;
+
+>>>>>>> b4a8743381d4b24db9a58f81911c6db6646d373d
         break;
 
       case 1:
@@ -180,6 +211,10 @@ void loop()
         arduboy.println("Waiting for dock");
         break;
 
+      case CLOCK:
+        doClock();
+        break;
+
       case FAIL:
         arduboy.println("Error.");
 
@@ -208,6 +243,7 @@ void loop()
   arduboy.display();
 }
 
+<<<<<<< HEAD
 void readSerial()
 {
   int rec = min(64, Serial.available());
@@ -241,4 +277,73 @@ void readSerial()
     }
   }
 }
+=======
+void readSerial() {
+
+  String r;
+
+  while (Serial.available())
+  {
+    ping();
+    r += (char)Serial.read();
+  }
+
+  if (r.startsWith("<PING>"))
+  {
+    lastReceivedPing = millis();
+    return;
+  }
+
+  arduboy.clear();
+  arduboy.println(r);
+  arduboy.display();
+
+  for (int i = 0; i < 10; i++)
+  {
+    ping();
+    delay(200);
+  }
+}
+
+const byte paddlew = 20, paddleh = 3, paddley = HEIGHT - paddleh;
+double ballx = 4, bally = 4;
+double ballspeedx = -0.4, ballspeedy = -0.4;
+const byte ballsize = 3;
+void doClock()
+{
+  // Clock does not need to be synced
+  lastReceivedPing = millis();
+
+  // Draw paddle
+  byte x = (WIDTH - paddlew) / 2;
+  arduboy.fillRect(x, paddley, paddlew, paddleh);
+
+  // Draw time
+  arduboy.setTextSize(3);
+  arduboy.setCursor((WIDTH - (5 * 18)) / 2, 0);
+  arduboy.print("12:00");
+
+  // Draw ball
+  arduboy.fillCircle(ballx, bally, ballsize, ballsize);
+  ballx += ballspeedx;
+  bally += ballspeedy;
+
+  if (ballx < 0 || ballx > WIDTH)
+    ballspeedx *= -1;
+  else if (ballx > 0)
+    ballspeedx *= arduboy.getPixel(ballx + ballsize / 2, bally) == WHITE ? -1 : 1;
+  else
+    ballspeedx *= arduboy.getPixel(ballx + ballsize / 2, bally + ballsize) == WHITE ? -1 : 1;
+
+  if (bally < 0 || bally > HEIGHT)
+    ballspeedy *= -1;
+  else if (bally > 0)
+    ballspeedy *= arduboy.getPixel(ballx, bally + ballsize / 2) == WHITE ? -1 : 1;
+  else
+    ballspeedy *= arduboy.getPixel(ballx + ballsize / 2, bally + ballsize / 2) == WHITE ? -1 : 1;
+
+  // Collisions with text
+
+}
+>>>>>>> b4a8743381d4b24db9a58f81911c6db6646d373d
 
