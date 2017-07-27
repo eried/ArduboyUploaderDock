@@ -89,7 +89,6 @@ void doMenu()
     switch (selectedItem)
     {
       case 0:
-<<<<<<< HEAD
         int r;
         if (getDockInt("<REPOSIZE>", &r))
         {
@@ -97,37 +96,7 @@ void doMenu()
           arduboy.display();
           delay(600);
         }
-=======
-        //Serial.println("REPO:0"); // Get page 0
-        /*arduboy.clear();
-          arduboy.println("->1010");
-          arduboy.println("  2048");
-          arduboy.println("  ABAsm DP1");
-          arduboy.println("  Abshell");
-          arduboy.println("  abSynth FM");
-          arduboy.println("  APara");
-          arduboy.println("  Arcodia");
-          arduboy.display();
-
-          while (arduboy.notPressed(DOWN_BUTTON))ping();
-
-          arduboy.clear();
-          arduboy.println("  1010");
-          arduboy.println("->2048");
-          arduboy.println("  ABAsm DP1");
-          arduboy.println("  Abshell");
-          arduboy.println("  abSynth FM");
-          arduboy.println("  APara");
-          arduboy.println("  Arcodia");
-          arduboy.display();
-
-          while (arduboy.notPressed(A_BUTTON))ping();
-
-          Serial.println("SEND:Puzzle.hex");
-          SwitchToTransfer();*/
         currentMode = REPO;
-
->>>>>>> b4a8743381d4b24db9a58f81911c6db6646d373d
         break;
 
       case 1:
@@ -243,7 +212,6 @@ void loop()
   arduboy.display();
 }
 
-<<<<<<< HEAD
 void readSerial()
 {
   int rec = min(64, Serial.available());
@@ -275,33 +243,6 @@ void readSerial()
           break;
       }
     }
-  }
-}
-=======
-void readSerial() {
-
-  String r;
-
-  while (Serial.available())
-  {
-    ping();
-    r += (char)Serial.read();
-  }
-
-  if (r.startsWith("<PING>"))
-  {
-    lastReceivedPing = millis();
-    return;
-  }
-
-  arduboy.clear();
-  arduboy.println(r);
-  arduboy.display();
-
-  for (int i = 0; i < 10; i++)
-  {
-    ping();
-    delay(200);
   }
 }
 
@@ -345,5 +286,3 @@ void doClock()
   // Collisions with text
 
 }
->>>>>>> b4a8743381d4b24db9a58f81911c6db6646d373d
-
