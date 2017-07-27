@@ -48,6 +48,7 @@
     <Compile Include="SafeSerialPort.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Utilities.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

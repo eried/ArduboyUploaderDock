@@ -13,7 +13,7 @@ namespace Uploader
     {
         private static readonly Stopwatch TimeSinceLastPingReceived = Stopwatch.StartNew(), 
             TimeSinceLastPingSent = Stopwatch.StartNew();
-        private static bool _waitForTheDeviceToBeDisconnected;
+        private static bool _waitForTheDeviceToBeDisconnected, _firstTime=true;
         private const char CommandEnd = '>', CommandStart = '<', CommandSplit = ':';
         private static string _buffer;
 
@@ -47,7 +47,7 @@ namespace Uploader
                                 }
                                 else
                                 {
-                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 1000)
+                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 1500)
                                     {
                                         Log("Not responding to PING...");
                                         SendUploader(s);
@@ -139,6 +139,13 @@ namespace Uploader
             }      
         }
 
+        public static double ConvertToUnixTimestamp(DateTime date)
+        {
+            DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
+            TimeSpan diff = date.ToLocalTime() - origin;
+            return Math.Floor(diff.TotalSeconds);
+        }
+
         private static void ProcessCommand(IReadOnlyList<string> cmd, SerialPort s)
         {
             Ping(s);
@@ -200,6 +207,7 @@ namespace Uploader
 
                 case "TIME":
                     Log("TIME received");
+                    SendResponseToArduboy(s, ((long)ConvertToUnixTimestamp(DateTime.Now.AddHours(3)))+"");
                     /*s.WriteLine(DateTime.Now.ToShortDateString());
                     s.WriteLine(DateTime.Now.ToShortTimeString());*/
                     break;
@@ -246,7 +254,6 @@ namespace Uploader
         private static void ResetAndWait()
         {
             SendReset(GetFirstArduboy());
-            
             WaitForTheArduboy();
         }
 
@@ -277,7 +284,7 @@ namespace Uploader
         {
             try
             {
-                foreach (var d in Directory.GetFiles("/dev/serial/by-id/"))
+                foreach (var d in Utilities.IsRunningOnMono()? Directory.GetFiles("/dev/serial/by-id/"): SerialPort.GetPortNames())
                     return d;
             }
             catch { }

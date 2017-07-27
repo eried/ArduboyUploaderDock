@@ -15,7 +15,7 @@ namespace MonoUtils
         public SafeSerialPort()
         {
             base.DataReceived += _serial_DataReceived;
-            _isRunningOnMono = Type.GetType("Mono.Runtime") != null;
+            _isRunningOnMono = Utilities.IsRunningOnMono();
         }
 
         public void BeginReceivingData()
