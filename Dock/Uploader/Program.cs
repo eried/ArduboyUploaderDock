@@ -1,4 +1,4 @@
-﻿using MonoUtils;
+﻿using SafeSerialPort;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -94,8 +94,7 @@ namespace Uploader
                 RtsEnable = true,
             };
 
-            s.Open();
-            s.BeginReceivingData();
+            s.Open(true);
             s.DataReceived += S_DataReceived;
             Log("Connected to " + s.PortName);
             TimeSinceLastPingReceived.Restart();
@@ -286,9 +285,14 @@ namespace Uploader
             return null;
         }
 
+        static string _lastMsg = "";
         private static void Log(string msg)
         {
-            Console.WriteLine(msg);
+            if (msg != _lastMsg)
+            {
+                _lastMsg = msg;
+                Console.WriteLine(msg);
+            }
         }
 
 

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MonoUtils
+namespace SafeSerialPort
 {
     internal class Utilities
     {
