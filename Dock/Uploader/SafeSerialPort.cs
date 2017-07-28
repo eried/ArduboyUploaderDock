@@ -73,7 +73,7 @@ namespace Uploader
 
         internal new void Close()
         {
-            _receiveSerial.Dispose();
+            _receiveSerial?.Dispose();
             _receiveSerial = null;
 
             base.Close();
