@@ -30,6 +30,7 @@ void ping()
   }
 }
 
+String serialBuffer = "";
 void readSerial()
 {
   int receivedBytes = min(64, Serial.available());
@@ -42,11 +43,11 @@ void readSerial()
       switch (c)
       {
         case '<':
-          buffer = "";
+          serialBuffer = "";
           break;
 
         case '>':
-          if (buffer == "PING")
+          if (serialBuffer == "PING")
           {
             freshBoot = false;
             lastReceivedPing = millis();
@@ -56,12 +57,12 @@ void readSerial()
             arduboy.print(received);
             arduboy.display();
             delay(600);
-            received = buffer;
+            received = serialBuffer;
           }
           return;
 
         default:
-          buffer += c;
+          serialBuffer += c;
           // TODO: Check for overflow!
           break;
       }

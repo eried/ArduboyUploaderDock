@@ -23,22 +23,41 @@ void loop()
     switch (currentMode)
     {
       case SHUTDOWN:
-        arduboy.println("Dock is turning off");
+        arduboy.println("Please wait, dock is");
+        arduboy.print("shutting down...");
+        lastReceivedPing = millis();
 
         if (nextEvent < millis())
+        {
           currentMode = WAITING;
+          nextEvent = millis() + 10000;
+        }
         break;
 
       case WAITING:
-        arduboy.println("Waiting for dock");
+        arduboy.println();
+        arduboy.println();
+        arduboy.println("It's now safe to turn");
+        arduboy.print("off your dock.");
+        lastReceivedPing = millis();
+
+        if (nextEvent < millis())
+        {
+          currentMode = MENU;
+        }
+        break;
+
+      case REPOINITBUFFER:
+        // Fill some game names in the buffer
+        clearGameNames();
+        currentMode = REPO;
         break;
 
       case REPOINIT:
         if (getDockInt("<REPOSIZE>", &tmp))
         {
-          arduboy.println(tmp);
-          arduboy.display();
-          currentMode = REPO;
+          repoTotalGames = tmp;
+          currentMode = REPOINITBUFFER;
         }
         break;
 
@@ -48,6 +67,10 @@ void loop()
           setTime(tmp);
           currentMode = CLOCK;
         }
+        break;
+
+      case REPO:
+        doRepo();
         break;
 
       case CLOCK:

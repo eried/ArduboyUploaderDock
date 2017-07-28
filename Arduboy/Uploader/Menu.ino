@@ -5,10 +5,18 @@ void SwitchToTransfer()
   nextEvent = millis() + 10000;
 }
 
+char buffer[30];
+unsigned char const menu1[] PROGMEM  = "Browse Collection";
+unsigned char const menu2[] PROGMEM  = "Clock";
+unsigned char const menu3[] PROGMEM  = "Dock settings";
+unsigned char const menu4[] PROGMEM  = "Update dock app";
+unsigned char const menu5[] PROGMEM  = "Charge mode";
+unsigned char* const menu[] PROGMEM = { menu1,menu2,menu3,menu4,menu5 }; 
+
 void doMenu()
 {
   arduboy.pollButtons();
-  arduboy.println("DOCK MENU V07");
+  arduboy.println("DOCK MENU V08");
 
   if (arduboy.justReleased(DOWN_BUTTON))
     selectedItem++;
@@ -21,7 +29,9 @@ void doMenu()
   for (byte i = 0; i < maximumItems; i++)
   {
     arduboy.print(selectedItem == i ? "->" : "  ");
-    arduboy.println(menuItems[i]);
+
+    strcpy_P(buffer, (char*)pgm_read_word(&(menu[i]))); // Necessary casts and dereferencing, just copy.
+    arduboy.println(buffer);
   }
   if (arduboy.justReleased(A_BUTTON))
   {
@@ -36,11 +46,11 @@ void doMenu()
         break;
 
       case 2:
-        Serial.print("<ABOUT>"); // TEMPORAL
+        Serial.print(F("<ABOUT>")); // TEMPORAL
         break;
 
       case 3:
-        Serial.print("<UPDATE>");
+        Serial.print(F("<UPDATE>"));
         SwitchToTransfer();
         break;
 
@@ -55,8 +65,8 @@ void doMenu()
               break;
 
             case 6:*/
-        Serial.print("<SHUTDOWN>");
-        nextEvent = millis() + 3000;
+        Serial.print(F("<SHUTDOWN>"));
+        nextEvent = millis() + 5000;
         currentMode = SHUTDOWN;
         break;
     }
