@@ -161,31 +161,28 @@ namespace Uploader
 
                 case "REPOSIZE":
                     Log("REPO SIZE received");
-
-                    /*foreach (var hex in Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories))
-                    {
-                        var gamePath = Path.GetDirectoryName(hex);
-                        var game = Path.GetFileName(gamePath);
-                        var category = Path.GetFileName(Path.GetDirectoryName(gamePath));
-
-                        s.Write(category.Substring(0, Math.Min(3, category.Length)) + "/" + game.Substring(0, Math.Min(6, game.Length)) + " ");
-                    }*/
                     SendResponseToArduboy(s, Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories).Length+"");
                     break;
 
                 case "REPONAME":
                     Log("REPO NAME received");
-
-                    /*foreach (var hex in Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories))
+                    var response = "NOT FOUND";
+                    if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
                     {
-                        var gamePath = Path.GetDirectoryName(hex);
-                        var game = Path.GetFileName(gamePath);
-                        var category = Path.GetFileName(Path.GetDirectoryName(gamePath));
+                        var games = Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories);
 
-                        s.Write(category.Substring(0, Math.Min(3, category.Length)) + "/" + game.Substring(0, Math.Min(6, game.Length)) + " ");
-                    }*/
-
-                    //SendArduboyCommand(s, Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories)[] + "");
+                        if (n < games.Length && n >= 0)
+                        {
+                            var hex = games[n];
+                            var gamePath = Path.GetDirectoryName(hex);
+                            var game = Path.GetFileName(gamePath);
+                            var category = Path.GetFileName(Path.GetDirectoryName(gamePath));
+                            response = game;
+                        }
+                        else
+                            response = "OUT OF BOUNDS";
+                    }
+                    SendResponseToArduboy(s, response);
                     break;
 
                 case "UPDATE":
