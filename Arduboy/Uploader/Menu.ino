@@ -1,17 +1,16 @@
+unsigned char const menu1[] PROGMEM  = "Browse Collection";
+unsigned char const menu2[] PROGMEM  = "Clock";
+unsigned char const menu3[] PROGMEM  = "Dock settings";
+unsigned char const menu4[] PROGMEM  = "Update dock app";
+unsigned char const menu5[] PROGMEM  = "Charge mode";
+unsigned char* const menu[] PROGMEM = { menu1, menu2, menu3, menu4, menu5 };
+
 void SwitchToTransfer()
 {
   currentTransferAnimationFrame = 0;
   currentMode = TRANSFER;
   nextEvent = millis() + 10000;
 }
-
-char buffer[30];
-unsigned char const menu1[] PROGMEM  = "Browse Collection";
-unsigned char const menu2[] PROGMEM  = "Clock";
-unsigned char const menu3[] PROGMEM  = "Dock settings";
-unsigned char const menu4[] PROGMEM  = "Update dock app";
-unsigned char const menu5[] PROGMEM  = "Charge mode";
-unsigned char* const menu[] PROGMEM = { menu1,menu2,menu3,menu4,menu5 }; 
 
 void doMenu()
 {
@@ -24,15 +23,15 @@ void doMenu()
   if (arduboy.justReleased(UP_BUTTON))
     selectedItem--;
 
-  selectedItem = selectedItem < 0 ? maximumItems : (selectedItem >= maximumItems ? 0 : selectedItem);
+  selectedItem = selectedItem < 0 ? maximumItems - 1 : (selectedItem >= maximumItems ? 0 : selectedItem);
 
   for (byte i = 0; i < maximumItems; i++)
   {
-    arduboy.print(selectedItem == i ? "->" : "  ");
-
-    strcpy_P(buffer, (char*)pgm_read_word(&(menu[i]))); // Necessary casts and dereferencing, just copy.
-    arduboy.println(buffer);
+    arduboy.print(selectedItem == i ? F("->") : F("  "));
+    const char * menuItem = reinterpret_cast<const char *>(pgm_read_word(&(menu[i]))); // Points to
+    arduboy.println(reinterpret_cast<const __FlashStringHelper*>(menuItem));
   }
+
   if (arduboy.justReleased(A_BUTTON))
   {
     switch (selectedItem)
@@ -55,16 +54,6 @@ void doMenu()
         break;
 
       case 4:
-        /*      Serial.println("SEND:game.hex");
-              SwitchToTransfer();
-              break;
-
-            case 5:
-              Serial.println("SEND:game2.hex");
-              SwitchToTransfer();
-              break;
-
-            case 6:*/
         Serial.print(F("<SHUTDOWN>"));
         nextEvent = millis() + 5000;
         currentMode = SHUTDOWN;

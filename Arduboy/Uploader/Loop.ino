@@ -7,6 +7,7 @@ void loop()
     return;
 
   arduboy.clear();
+  arduboy.setTextSize(1);
 
   if (millis() - lastReceivedPing > (freshBoot ? 2000 : 1000))
   {
@@ -49,12 +50,15 @@ void loop()
 
       case REPOINITBUFFER:
         // Fill some game names in the buffer
-        clearGameNames();
+        if (repoLoaded == 0)
+          clearGameNames();
         currentMode = REPO;
         break;
 
       case REPOINIT:
-        if (getDockInt("<REPOSIZE>", &tmp))
+        if (repoTotalGames != -1)
+          currentMode = REPO;
+        else if (getDockInt("<REPOSIZE>", &tmp))
         {
           repoTotalGames = tmp;
           currentMode = REPOINITBUFFER;

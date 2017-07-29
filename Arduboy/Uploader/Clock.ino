@@ -2,8 +2,14 @@ const byte paddlew = 20, paddleh = 3, paddley = HEIGHT - paddleh;
 double ballx = 0, bally = 15, paddlex = (WIDTH - paddlew) / 2;
 double ballspeedx = -1.35, ballspeedy = -1.1;
 const byte ballsize = 3;
+
 void doClock()
 {
+  arduboy.pollButtons();
+
+  if (arduboy.justPressed(B_BUTTON))
+    currentMode = MENU;
+
   // Clock does not need to be synced that often
   lastReceivedPing = millis();
 

@@ -20,6 +20,7 @@ namespace Uploader
         private static void Main(string[] args)
         {
             Environment.CurrentDirectory = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+            Log("Started. Waiting for incoming device.");
 
             do
             {
@@ -47,7 +48,7 @@ namespace Uploader
                                 }
                                 else
                                 {
-                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 2000)
+                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 4000)
                                     {
                                         Log("Not responding to PING...");
                                         SendUploader(s);
@@ -70,7 +71,7 @@ namespace Uploader
                     Log("Error: " + ex.Message);
                 }
 
-                Log("Nothing connected. Retrying soon");
+                //Log("Nothing connected. Retrying soon");
 
                 if (_waitForTheDeviceToBeDisconnected)
                 {
@@ -161,28 +162,34 @@ namespace Uploader
 
                 case "REPOSIZE":
                     Log("REPO SIZE received");
-                    SendResponseToArduboy(s, Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories).Length+"");
+                    SendResponseToArduboy(s, Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories).Length + "");
+                    break;
+
+                case "REPOSEND":
+                    {
+                        Log("REPO SEND received");
+                        considerCommandReceivedAsPing = false;
+
+                        if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
+                        {
+                            var g = GetRepoHex(n);
+                            if (g != null)
+                                SendHex(s, g.Hex);
+                        }
+                    }
                     break;
 
                 case "REPONAME":
-                    Log("REPO NAME received");
-                    var response = "NOT FOUND";
-                    if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
                     {
-                        var games = Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories);
-
-                        if (n < games.Length && n >= 0)
+                        Log("REPO NAME received");
+                        var response = "NOT FOUND";
+                        if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
                         {
-                            var hex = games[n];
-                            var gamePath = Path.GetDirectoryName(hex);
-                            var game = Path.GetFileName(gamePath);
-                            var category = Path.GetFileName(Path.GetDirectoryName(gamePath));
-                            response = game;
+                            var g = GetRepoHex(n);
+                            response = g == null ? "OUT OF BOUNDS" : g.Name;
                         }
-                        else
-                            response = "OUT OF BOUNDS";
+                        SendResponseToArduboy(s, response);
                     }
-                    SendResponseToArduboy(s, response);
                     break;
 
                 case "UPDATE":
@@ -193,12 +200,8 @@ namespace Uploader
 
                 case "SEND":
                     Log("SEND received");
-                    s.Close();
                     considerCommandReceivedAsPing = false;
-                    TimeSinceLastPingReceived.Reset();
-                    ResetAndWait();
-                    SendArduboyGame(cmd[1], true);
-                    Log("Game sent. Waiting");
+                    SendHex(s, cmd[1]);
                     break;
 
                 case "TIME":
@@ -224,6 +227,30 @@ namespace Uploader
 
             if (considerCommandReceivedAsPing)
                 TimeSinceLastPingReceived.Restart();
+        }
+
+        private static RepoItem GetRepoHex(int n)
+        {
+            var games = Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories);
+
+            if (n < games.Length && n >= 0)
+            {
+                var hex = games[n];
+                var gamePath = Path.GetDirectoryName(hex);
+                var game = Path.GetFileName(gamePath);
+                var category = Path.GetFileName(Path.GetDirectoryName(gamePath));
+                return new RepoItem { Category = category, Name = game, Hex = hex };
+            }
+            return null;
+        }
+
+        private static void SendHex(SerialPort s, string hex)
+        {
+            s.Close();
+            TimeSinceLastPingReceived.Reset();
+            ResetAndWait();
+            SendArduboyGame(hex, true);
+            Log("Game sent. Waiting");
         }
 
         private static void SendUploader(SerialPort sp)
@@ -314,5 +341,12 @@ namespace Uploader
             arduboy.Close();
             arduboy.Dispose();
         }
+    }
+
+    internal class RepoItem
+    {
+        internal string Category;
+        internal string Name;
+        internal string Hex;
     }
 }

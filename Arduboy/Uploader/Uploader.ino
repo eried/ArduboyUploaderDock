@@ -1,7 +1,6 @@
 #include <Arduboy2.h>
 #include <TimeLib.h>
 #include "sprites.h"
-#include "string.h"
 Sprites sprites;
 Arduboy2 arduboy;
 
@@ -15,6 +14,8 @@ const byte MENU = 0, WAITING = 1, SHUTDOWN = 99, FAIL = 98, TRANSFER = 10,
 byte currentMode = MENU;
 int currentErrorAnimationFrame = 0, currentTransferAnimationFrame = 0, repoTotalGames = -1;
 bool freshBoot = true;
+int repoSelectedGame = 0, repoOffsetStart = 0, repoLoaded = 0;
+String received, serialBuffer;
 
 void setup()
 {
@@ -22,6 +23,8 @@ void setup()
   arduboy.setFrameRate(60);
   //arduboy.setTextWrap(true);
 
+  received.reserve(30);
+  serialBuffer.reserve(30);
   Serial.begin(115200);
 
   // Disable TX & RX leds

@@ -1,9 +1,28 @@
 bool pendingAnswerFromDock = false;
-String received = "";
+
+bool getDockString(String command, String *output)
+{
+  if (!pendingAnswerFromDock)
+  {
+    Serial.print(command);
+    pendingAnswerFromDock = true;
+  }
+  else
+  {
+    if (received.length())
+    {
+      pendingAnswerFromDock = false;
+      *output = received;
+      received = "";
+      return true;
+    }
+  }
+  return false;
+}
+
 bool getDockInt(String command, long *output)
 {
   if (!pendingAnswerFromDock)
-
   {
     Serial.print(command);
     pendingAnswerFromDock = true;
@@ -30,7 +49,6 @@ void ping()
   }
 }
 
-String serialBuffer = "";
 void readSerial()
 {
   int receivedBytes = min(64, Serial.available());
@@ -39,7 +57,6 @@ void readSerial()
     for (; receivedBytes > 0; receivedBytes--)
     {
       char c = Serial.read();
-
       switch (c)
       {
         case '<':
@@ -66,6 +83,9 @@ void readSerial()
           // TODO: Check for overflow!
           break;
       }
+
+      if (arduboy.nextFrame()) // Keep UI responsive
+        break;
     }
   }
 }
