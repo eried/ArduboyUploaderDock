@@ -52,10 +52,10 @@ namespace Uploader
                                 }
                                 else
                                 {
-                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 4000)
+                                    if (TimeSinceLastPingReceived.ElapsedMilliseconds > 1000)
                                     {
                                         Log("Not responding to PING...");
-                                        SendUploader(s);
+                                        SendHex(s);
                                     }
                                 }
                             }
@@ -202,7 +202,7 @@ namespace Uploader
 
                 case "UPDATE":
                     Log("UPDATE received");
-                    SendUploader(s);
+                    SendHex(s);
                     Log("Uploader sent. Waiting");
                     break;
 
@@ -250,21 +250,14 @@ namespace Uploader
             return null;
         }
 
-        private static void SendHex(SerialPort s, string hex)
+        private static void SendHex(SerialPort s, string hex=null)
         {
+            var findDockHex = string.IsNullOrEmpty(hex);          
             s.Close();
             TimeSinceLastPingReceived.Reset();
             ResetAndWait();
-            SendArduboyGame(hex, true);
-            Log("Game sent. Waiting");
-        }
-
-        private static void SendUploader(SerialPort sp)
-        {
-            sp.Close();
-            TimeSinceLastPingReceived.Reset();
-            ResetAndWait();
-            SendArduboyGame(GetDockHex(), false);
+            SendArduboyGame(findDockHex ? GetDockHex(): hex, !findDockHex);
+            Log("Game: "+hex+" sent. Waiting");
         }
 
         private static string GetDockHex()
