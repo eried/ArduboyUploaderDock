@@ -18,20 +18,31 @@ void clearGameNames()
 
 void doRepo()
 {
-  if (arduboy.justPressed(B_BUTTON))
-    currentMode = MENU;
+  checkBackButton();
 
   if (arduboy.justReleased(DOWN_BUTTON))
+  {
+    //tunes.tone(1100, 10);
     repoSelectedGame++;
+  }
 
   if (arduboy.justReleased(UP_BUTTON))
+  {
+    //tunes.tone(1100, 10);
     repoSelectedGame--;
+  }
 
   if (arduboy.justReleased(LEFT_BUTTON))
-    repoSelectedGame-=screenSizeGames-1;
+  {
+    //tunes.tone(700, 30);
+    repoSelectedGame -= screenSizeGames - 1;
+  }
 
   if (arduboy.justReleased(RIGHT_BUTTON))
-    repoSelectedGame+=screenSizeGames-1;
+  {
+    //tunes.tone(700, 30);
+    repoSelectedGame += screenSizeGames - 1;
+  }
 
   int oldSelectedGame = repoSelectedGame;
   repoSelectedGame = repoSelectedGame < 0 ? repoTotalGames - 1 : (repoSelectedGame >= repoTotalGames ? 0 : repoSelectedGame);
@@ -75,7 +86,7 @@ void doRepo()
   {
     int gameNumber = (i + screenOffset);
     tinyfont.setCursor(0, 5 * i);
-    tinyfont.print(repoSelectedGame == gameNumber ? F("->") : F("  "));
+    tinyfont.print(repoSelectedGame == gameNumber ? F(">") : F(" "));
     tinyfont.print(games[i]);
 
     if (loaded[i] != gameNumber)

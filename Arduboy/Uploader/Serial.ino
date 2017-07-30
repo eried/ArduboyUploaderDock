@@ -55,7 +55,7 @@ void readSerial()
   if (receivedBytes)
   {
     for (; receivedBytes > 0; receivedBytes--)
-    {      
+    {
       char c = Serial.read();
       switch (c)
       {
@@ -72,8 +72,8 @@ void readSerial()
           else
           {
             /*arduboy.print(received);
-            arduboy.display();
-            delay(600);*/
+              arduboy.display();
+              delay(600);*/
             received = serialBuffer;
           }
           return;

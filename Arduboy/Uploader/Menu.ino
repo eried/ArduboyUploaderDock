@@ -7,6 +7,7 @@ unsigned char* const menu[] PROGMEM = { menu1, menu2, menu3, menu4, menu5 };
 
 void SwitchToTransfer()
 {
+  //tunes.tone(1000, 60);
   currentTransferAnimationFrame = 0;
   currentMode = TRANSFER;
   nextEvent = millis() + 10000;
@@ -17,10 +18,16 @@ void doMenu()
   arduboy.println("DOCK MENU V08");
 
   if (arduboy.justReleased(DOWN_BUTTON))
+  {
+    //tunes.tone(1100, 30);
     selectedItem++;
+  }
 
   if (arduboy.justReleased(UP_BUTTON))
+  {
+    //tunes.tone(1100, 30);
     selectedItem--;
+  }
 
   selectedItem = selectedItem < 0 ? maximumItems - 1 : (selectedItem >= maximumItems ? 0 : selectedItem);
 

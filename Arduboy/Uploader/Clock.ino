@@ -3,10 +3,18 @@ double ballx = 0, bally = 15, paddlex = (WIDTH - paddlew) / 2;
 double ballspeedx = -1.35, ballspeedy = -1.1;
 const byte ballsize = 3;
 
-void doClock()
+void checkBackButton()
 {
   if (arduboy.justPressed(B_BUTTON))
+  {
+    //tunes.tone(1100, 30); delay(30); tunes.tone(600, 30);
     currentMode = MENU;
+  }
+}
+
+void doClock()
+{
+  checkBackButton();
 
   // Clock does not need to be synced that often
   lastReceivedPing = millis();
