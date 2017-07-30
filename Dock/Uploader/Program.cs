@@ -55,7 +55,7 @@ namespace Uploader
                                     if (TimeSinceLastPingReceived.ElapsedMilliseconds > 1000)
                                     {
                                         Log("Not responding to PING...");
-                                        SendHex(s);
+                                        SendHexToArduboyReset(s);
                                     }
                                 }
                             }
@@ -163,9 +163,6 @@ namespace Uploader
             {
                 case "PING":
                 case "PONG":
-                    /*Log("PING/PONG received");
-                    Ping(s);
-                    TimeSinceLastPingReceived.Restart();*/
                     break;
 
                 case "REPOSIZE":
@@ -182,7 +179,7 @@ namespace Uploader
                             Log("REPO SEND received: " +n);
                             var g = GetRepoHex(n);
                             if (g != null)
-                                SendHex(s, g.Hex);
+                                SendHexToArduboyReset(s, g.Hex);
                         }
                     }
                     break;
@@ -202,14 +199,14 @@ namespace Uploader
 
                 case "UPDATE":
                     Log("UPDATE received");
-                    SendHex(s);
+                    SendHexToArduboyReset(s);
                     Log("Uploader sent. Waiting");
                     break;
 
                 case "SEND":
                     Log("SEND received");
                     considerCommandReceivedAsPing = false;
-                    SendHex(s, cmd[1]);
+                    SendHexToArduboyReset(s, cmd[1]);
                     break;
 
                 case "TIME":
@@ -250,13 +247,13 @@ namespace Uploader
             return null;
         }
 
-        private static void SendHex(SerialPort s, string hex=null)
+        private static void SendHexToArduboyReset(SerialPort s, string hex=null)
         {
             var findDockHex = string.IsNullOrEmpty(hex);          
             s.Close();
             TimeSinceLastPingReceived.Reset();
             ResetAndWait();
-            SendArduboyGame(findDockHex ? GetDockHex(): hex, !findDockHex);
+            TransferHexToArduboy(findDockHex ? GetDockHex(): hex, !findDockHex);
             Log("Game: "+hex+" sent. Waiting");
         }
 
@@ -281,7 +278,7 @@ namespace Uploader
             while (string.IsNullOrEmpty(GetFirstArduboy())) Thread.Sleep(100);
         }
 
-        private static void SendArduboyGame(string hexFile, bool waitForDisconnection = true)
+        private static void TransferHexToArduboy(string hexFile, bool waitForDisconnection = true)
         {
             if (string.IsNullOrEmpty(hexFile) || !File.Exists(hexFile))
                 return;
