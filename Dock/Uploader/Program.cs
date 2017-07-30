@@ -20,6 +20,10 @@ namespace Uploader
         private static void Main(string[] args)
         {
             Environment.CurrentDirectory = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+
+            hexFiles = Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories);
+            Log("Loaded: " +hexFiles.Count() + " hex files");
+
             Log("Started. Waiting for incoming device.");
 
             do
@@ -117,26 +121,30 @@ namespace Uploader
                 s.Write(CommandStart + cmd + CommandEnd);
         }
 
+        static object receiving = new object();
         private static void S_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            var s = (SerialPort)sender;
-            _buffer += s.ReadExisting().Replace("\r", "").Replace("\n", "");
-
-            if (_buffer.Contains(CommandEnd))
+            lock (receiving)
             {
-                var tmp = _buffer.Split(CommandEnd);
-                var includeFinalItem = _buffer[_buffer.Length - 1] == CommandEnd;
-                for (var i = 0; i < tmp.Length-(includeFinalItem?0:1); i++)
-                {
-                    if (!string.IsNullOrEmpty(tmp[i]) && tmp[i][0] == CommandStart)
-                    {
-                        tmp[i] = tmp[i].TrimStart(CommandStart);
-                        ProcessCommand(tmp[i].Split(CommandSplit), s);
-                    }
-                }
+                var s = (SerialPort)sender;
+                _buffer += s.ReadExisting().Replace("\r", "").Replace("\n", "");
 
-                _buffer = !includeFinalItem ? tmp.Last() : "";
-            }      
+                if (_buffer.Contains(CommandEnd))
+                {
+                    var tmp = _buffer.Split(CommandEnd);
+                    var includeFinalItem = _buffer[_buffer.Length - 1] == CommandEnd;
+                    for (var i = 0; i < tmp.Length - (includeFinalItem ? 0 : 1); i++)
+                    {
+                        if (!string.IsNullOrEmpty(tmp[i]) && tmp[i][0] == CommandStart)
+                        {
+                            tmp[i] = tmp[i].TrimStart(CommandStart);
+                            ProcessCommand(tmp[i].Split(CommandSplit), s);
+                        }
+                    }
+
+                    _buffer = !includeFinalItem ? tmp.Last() : "";
+                }
+            }
         }
 
         public static double ConvertToUnixTimestamp(DateTime date)
@@ -162,16 +170,16 @@ namespace Uploader
 
                 case "REPOSIZE":
                     Log("REPO SIZE received");
-                    SendResponseToArduboy(s, Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories).Length + "");
+                    SendResponseToArduboy(s, hexFiles.Length + "");
                     break;
 
                 case "REPOSEND":
                     {
-                        Log("REPO SEND received");
                         considerCommandReceivedAsPing = false;
 
                         if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
                         {
+                            Log("REPO SEND received: " +n);
                             var g = GetRepoHex(n);
                             if (g != null)
                                 SendHex(s, g.Hex);
@@ -181,10 +189,10 @@ namespace Uploader
 
                 case "REPONAME":
                     {
-                        Log("REPO NAME received");
                         var response = "NOT FOUND";
                         if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
                         {
+                            Log("REPO NAME received: " + n);
                             var g = GetRepoHex(n);
                             response = g == null ? "OUT OF BOUNDS" : g.Name;
                         }
@@ -231,11 +239,9 @@ namespace Uploader
 
         private static RepoItem GetRepoHex(int n)
         {
-            var games = Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories);
-
-            if (n < games.Length && n >= 0)
+            if (n < hexFiles.Length && n >= 0)
             {
-                var hex = games[n];
+                var hex = hexFiles[n];
                 var gamePath = Path.GetDirectoryName(hex);
                 var game = Path.GetFileName(gamePath);
                 var category = Path.GetFileName(Path.GetDirectoryName(gamePath));
@@ -310,6 +316,8 @@ namespace Uploader
         }
 
         static string _lastMsg = "";
+        private static string[] hexFiles;
+
         private static void Log(string msg)
         {
             if (msg != _lastMsg)

@@ -14,7 +14,6 @@ void SwitchToTransfer()
 
 void doMenu()
 {
-  arduboy.pollButtons();
   arduboy.println("DOCK MENU V08");
 
   if (arduboy.justReleased(DOWN_BUTTON))

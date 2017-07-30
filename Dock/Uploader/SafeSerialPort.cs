@@ -84,7 +84,7 @@ namespace Uploader
             SafeOpen();
 
             if (forceReceiveData && _isRunningOnMono)
-                _receiveSerial = new Timer(ManualSerial, null, 0, 100);
+                _receiveSerial = new Timer(ManualSerial, null, 0, 1);
         }
 
         public new event EventHandler<SerialDataReceivedEventArgs> DataReceived;

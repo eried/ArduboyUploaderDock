@@ -5,8 +5,6 @@ const byte ballsize = 3;
 
 void doClock()
 {
-  arduboy.pollButtons();
-
   if (arduboy.justPressed(B_BUTTON))
     currentMode = MENU;
 

@@ -6,6 +6,8 @@ void loop()
   if (!(arduboy.nextFrame()))
     return;
 
+  arduboy.pollButtons();
+
   arduboy.clear();
   arduboy.setTextSize(1);
 

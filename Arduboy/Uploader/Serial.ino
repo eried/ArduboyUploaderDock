@@ -55,7 +55,7 @@ void readSerial()
   if (receivedBytes)
   {
     for (; receivedBytes > 0; receivedBytes--)
-    {
+    {      
       char c = Serial.read();
       switch (c)
       {
@@ -71,9 +71,9 @@ void readSerial()
           }
           else
           {
-            arduboy.print(received);
+            /*arduboy.print(received);
             arduboy.display();
-            delay(600);
+            delay(600);*/
             received = serialBuffer;
           }
           return;
@@ -83,9 +83,6 @@ void readSerial()
           // TODO: Check for overflow!
           break;
       }
-
-      if (arduboy.nextFrame()) // Keep UI responsive
-        break;
     }
   }
 }
