@@ -1,4 +1,4 @@
-const int screenSizeGames = 8;
+const int screenSizeGames = 13;
 int currentGameToBuffer = -1, screenOffset = 0;
 String games[screenSizeGames];
 int loaded[screenSizeGames];
@@ -26,6 +26,12 @@ void doRepo()
 
   if (arduboy.justReleased(UP_BUTTON))
     repoSelectedGame--;
+
+  if (arduboy.justReleased(LEFT_BUTTON))
+    repoSelectedGame-=screenSizeGames-1;
+
+  if (arduboy.justReleased(RIGHT_BUTTON))
+    repoSelectedGame+=screenSizeGames-1;
 
   int oldSelectedGame = repoSelectedGame;
   repoSelectedGame = repoSelectedGame < 0 ? repoTotalGames - 1 : (repoSelectedGame >= repoTotalGames ? 0 : repoSelectedGame);
@@ -68,9 +74,9 @@ void doRepo()
   for (int i = minimum - 1; i >= 0; i--)
   {
     int gameNumber = (i + screenOffset);
-    arduboy.setCursor(0, 8 * i);
-    arduboy.print(repoSelectedGame == gameNumber ? F("->") : F("  "));
-    arduboy.println(games[i]);
+    tinyfont.setCursor(0, 5 * i);
+    tinyfont.print(repoSelectedGame == gameNumber ? F("->") : F("  "));
+    tinyfont.print(games[i]);
 
     if (loaded[i] != gameNumber)
       c = i;

@@ -14,7 +14,7 @@ void loop()
   if (millis() - lastReceivedPing > (freshBoot ? 2000 : 1000))
   {
     sprites.drawSelfMasked(0, 0, error, currentErrorAnimationFrame);
-    if (arduboy.everyXFrames(30)) currentErrorAnimationFrame++;
+    if (arduboy.everyXFrames(60)) currentErrorAnimationFrame++;
     if (currentErrorAnimationFrame > 2) currentErrorAnimationFrame = 0;
 
   }
@@ -57,6 +57,15 @@ void loop()
         currentMode = REPO;
         break;
 
+      case REPOUPDATE:
+        arduboy.println("Please wait, dock is");
+        arduboy.print("updating the repo...");
+        lastReceivedPing = millis();
+
+        if (nextEvent < millis())
+          currentMode = MENU;
+        break;
+
       case REPOINIT:
         if (repoTotalGames != -1)
           currentMode = REPO;
@@ -93,7 +102,7 @@ void loop()
 
       case TRANSFER:
         sprites.drawSelfMasked(0, 0, transfer, currentTransferAnimationFrame);
-        if (arduboy.everyXFrames(3)) currentTransferAnimationFrame++;
+        if (arduboy.everyXFrames(6)) currentTransferAnimationFrame++;
         if (currentTransferAnimationFrame > 4) currentTransferAnimationFrame = 0;
 
         if (nextEvent < millis())

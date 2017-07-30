@@ -15,14 +15,14 @@ namespace Uploader
             TimeSinceLastPingSent = Stopwatch.StartNew();
         private static bool _waitForTheDeviceToBeDisconnected;
         private const char CommandEnd = '>', CommandStart = '<', CommandSplit = ':';
+        private const string RepoDirectory = "repo";
         private static string _buffer;
+        static object receiving = new object();
 
         private static void Main(string[] args)
         {
             Environment.CurrentDirectory = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
-
-            hexFiles = Directory.GetFiles("repo", "*.hex", SearchOption.AllDirectories);
-            Log("Loaded: " +hexFiles.Count() + " hex files");
+            LoadGamesFromRepo();
 
             Log("Started. Waiting for incoming device.");
 
@@ -90,6 +90,12 @@ namespace Uploader
             } while (true);
         }
 
+        private static void LoadGamesFromRepo()
+        {
+            hexFiles = Directory.GetFiles(RepoDirectory, "*.hex", SearchOption.AllDirectories);
+            Log("Loaded: " + hexFiles.Count() + " hex files");
+        }
+
         private static SafeSerialPort ConnectToArduboy(string arduboy)
         {
             var s = new SafeSerialPort()
@@ -121,7 +127,6 @@ namespace Uploader
                 s.Write(CommandStart + cmd + CommandEnd);
         }
 
-        static object receiving = new object();
         private static void S_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             lock (receiving)
@@ -156,82 +161,100 @@ namespace Uploader
 
         private static void ProcessCommand(IReadOnlyList<string> cmd, SerialPort s)
         {
-            Ping(s);
             var considerCommandReceivedAsPing = true;
 
-            switch (cmd[0])
+            try
             {
-                case "PING":
-                case "PONG":
-                    break;
+                Ping(s);
 
-                case "REPOSIZE":
-                    Log("REPO SIZE received");
-                    SendResponseToArduboy(s, hexFiles.Length + "");
-                    break;
+                switch (cmd[0])
+                {
+                    case "PING":
+                    case "PONG":
+                        break;
 
-                case "REPOSEND":
-                    {
+                    case "REPOSIZE":
+                        Log("REPO SIZE received");
+                        SendResponseToArduboy(s, hexFiles.Length + "");
+                        break;
+
+                    case "REPOSEND":
+                        {
+                            considerCommandReceivedAsPing = false;
+
+                            if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
+                            {
+                                Log("REPO SEND received: " + n);
+                                var g = GetRepoHex(n);
+                                if (g != null)
+                                    SendHexToArduboyReset(s, g.Hex);
+                            }
+                        }
+                        break;
+
+                    case "REPONAME":
+                        {
+                            var response = "NOT FOUND";
+                            if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
+                            {
+                                Log("REPO NAME received: " + n);
+                                var g = GetRepoHex(n);
+                                response = g == null ? "OUT OF BOUNDS" : g.Category.PadRight(6).Substring(0,6) +"/"+ g.Name.PadLeft(17).Substring(0, 17);
+                            }
+                            SendResponseToArduboy(s, response);
+                        }
+                        break;
+
+                    case "UPDATE":
+                        Log("UPDATE received");
+                        SendHexToArduboyReset(s);
+                        Log("Uploader sent. Waiting");
+                        break;
+
+                    case "SEND":
+                        Log("SEND received");
                         considerCommandReceivedAsPing = false;
+                        SendHexToArduboyReset(s, cmd[1]);
+                        break;
 
-                        if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
-                        {
-                            Log("REPO SEND received: " +n);
-                            var g = GetRepoHex(n);
-                            if (g != null)
-                                SendHexToArduboyReset(s, g.Hex);
-                        }
-                    }
-                    break;
+                    case "TIME":
+                        Log("TIME received");
+                        SendResponseToArduboy(s, ((long)ConvertToUnixTimestamp(DateTime.Now)) + "");
+                        break;
 
-                case "REPONAME":
-                    {
-                        var response = "NOT FOUND";
-                        if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
-                        {
-                            Log("REPO NAME received: " + n);
-                            var g = GetRepoHex(n);
-                            response = g == null ? "OUT OF BOUNDS" : g.Name;
-                        }
-                        SendResponseToArduboy(s, response);
-                    }
-                    break;
+                    case "ABOUT":
+                        Log("ABOUT received");
+                        break;
 
-                case "UPDATE":
-                    Log("UPDATE received");
-                    SendHexToArduboyReset(s);
-                    Log("Uploader sent. Waiting");
-                    break;
+                    case "REPOUPDATE":
+                        Log("REPOUPDATE received");
+                        new Thread(new ThreadStart(OnlineRepoUpdate)).Start();
+                        break;
 
-                case "SEND":
-                    Log("SEND received");
-                    considerCommandReceivedAsPing = false;
-                    SendHexToArduboyReset(s, cmd[1]);
-                    break;
+                    case "SHUTDOWN":
+                        TimeSinceLastPingReceived.Reset();
+                        Log("SHUTDOWN received");
+                        Process.Start(new ProcessStartInfo() { FileName = "sudo", Arguments = "halt" });
+                        break;
 
-                case "TIME":
-                    Log("TIME received");
-                    SendResponseToArduboy(s, ((long)ConvertToUnixTimestamp(DateTime.Now))+"");
-                    break;
-
-                case "ABOUT":
-                    Log("ABOUT received");
-                    break;
-
-                case "SHUTDOWN":
-                    TimeSinceLastPingReceived.Reset();
-                    Log("SHUTDOWN received");
-                    Process.Start(new ProcessStartInfo() { FileName = "sudo", Arguments = "halt" });
-                    break;
-
-                default:
-                    Log("Received: " + cmd[0]);
-                    considerCommandReceivedAsPing = false;
-                    break;
+                    default:
+                        Log("Received: " + cmd[0]);
+                        considerCommandReceivedAsPing = false;
+                        break;
+                }
             }
+            catch (Exception ex) { Log("Error in command: " + ex.Message); }
 
             if (considerCommandReceivedAsPing)
                 TimeSinceLastPingReceived.Restart();
+        }
+
+        private static void OnlineRepoUpdate()
+        {
+            Process.Start(new ProcessStartInfo() { FileName = "git", Arguments = "reset --hard HEAD", WorkingDirectory = RepoDirectory }).WaitForExit();
+            Process.Start(new ProcessStartInfo() { FileName = "git", Arguments = "clean -xffd", WorkingDirectory = RepoDirectory }).WaitForExit();
+            Process.Start(new ProcessStartInfo() { FileName = "git", Arguments = "pull", WorkingDirectory = RepoDirectory }).WaitForExit();
+            LoadGamesFromRepo();
         }
 
         private static RepoItem GetRepoHex(int n)
@@ -247,14 +270,26 @@ namespace Uploader
             return null;
         }
 
-        private static void SendHexToArduboyReset(SerialPort s, string hex=null)
+        private static void SendHexToArduboyReset(SerialPort s, string hex = null)
         {
-            var findDockHex = string.IsNullOrEmpty(hex);          
+            var findDockHex = string.IsNullOrEmpty(hex);
             s.Close();
             TimeSinceLastPingReceived.Reset();
-            ResetAndWait();
-            TransferHexToArduboy(findDockHex ? GetDockHex(): hex, !findDockHex);
-            Log("Game: "+hex+" sent. Waiting");
+
+            if (findDockHex)
+                hex = GetDockHex();
+
+            // If we are in Windows, we could use Arduboy Uploader for this...
+            const string abuploader = "abupload.exe";
+            if (!Utilities.IsRunningOnMono() && File.Exists(abuploader))
+                Process.Start(new ProcessStartInfo { FileName = abuploader, Arguments = "\""+ Path.GetFullPath(hex)+ "\"" }).WaitForExit();
+            else
+            {
+                ResetAndWait();
+                TransferHexToArduboy(hex);
+            }
+            _waitForTheDeviceToBeDisconnected = !findDockHex;
+            Log("Game: " + hex + " sent. Waiting");
         }
 
         private static string GetDockHex()
@@ -278,7 +313,7 @@ namespace Uploader
             while (string.IsNullOrEmpty(GetFirstArduboy())) Thread.Sleep(100);
         }
 
-        private static void TransferHexToArduboy(string hexFile, bool waitForDisconnection = true)
+        private static void TransferHexToArduboy(string hexFile)
         {
             if (string.IsNullOrEmpty(hexFile) || !File.Exists(hexFile))
                 return;
@@ -289,8 +324,6 @@ namespace Uploader
             p.Start();
 
             p.WaitForExit(10000);
-
-            _waitForTheDeviceToBeDisconnected = waitForDisconnection;
             Log("Sent!");
         }
 

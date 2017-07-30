@@ -1,8 +1,8 @@
 unsigned char const menu1[] PROGMEM  = "Browse Collection";
 unsigned char const menu2[] PROGMEM  = "Clock";
-unsigned char const menu3[] PROGMEM  = "Dock settings";
-unsigned char const menu4[] PROGMEM  = "Update dock app";
-unsigned char const menu5[] PROGMEM  = "Charge mode";
+unsigned char const menu3[] PROGMEM  = "Online update repo";
+unsigned char const menu4[] PROGMEM  = "Reinstall dock app";
+unsigned char const menu5[] PROGMEM  = "Power off dock";
 unsigned char* const menu[] PROGMEM = { menu1, menu2, menu3, menu4, menu5 };
 
 void SwitchToTransfer()
@@ -44,7 +44,10 @@ void doMenu()
         break;
 
       case 2:
-        Serial.print(F("<ABOUT>")); // TEMPORAL
+        Serial.print(F("<REPOUPDATE>"));
+        repoTotalGames = -1;
+        nextEvent = millis() + 10000;
+        currentMode = REPOUPDATE;
         break;
 
       case 3:
