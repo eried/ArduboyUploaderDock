@@ -88,6 +88,8 @@ void doRepo()
     tinyfont.setCursor(0, 5 * i);
     tinyfont.print(repoSelectedGame == gameNumber ? F(">") : F(" "));
     tinyfont.print(games[i]);
+    tinyfont.setCursor(WIDTH - 4, 5 * i);
+    tinyfont.print(repoSelectedGame == gameNumber ? F("<") : F(" "));
 
     if (loaded[i] != gameNumber)
       c = i;
