@@ -182,7 +182,8 @@ namespace Uploader
                         {
                             considerCommandReceivedAsPing = false;
 
-                            if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
+                            int n;
+                            if (cmd.Count >= 2 && int.TryParse(cmd[1], out n))
                             {
                                 Log("REPO SEND received: " + n);
                                 var g = GetRepoHex(n);
@@ -195,7 +196,8 @@ namespace Uploader
                     case "REPONAME":
                         {
                             var response = "NOT FOUND";
-                            if (cmd.Count >= 2 && int.TryParse(cmd[1], out int n))
+                            int n;
+                            if (cmd.Count >= 2 && int.TryParse(cmd[1], out n))
                             {
                                 Log("REPO NAME received: " + n);
                                 var g = GetRepoHex(n);
