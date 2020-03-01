@@ -15,7 +15,7 @@ namespace Uploader
             TimeSinceLastPingSent = Stopwatch.StartNew();
         private static bool _waitForTheDeviceToBeDisconnected;
         private const char CommandEnd = '>', CommandStart = '<', CommandSplit = ':';
-        private const string RepoDirectory = "repo";
+        private const string RepoDirectory = "/repo";
         private static string _buffer;
         static object receiving = new object();
 
