@@ -92,7 +92,11 @@ namespace Uploader
 
         private static void LoadGamesFromRepo()
         {
-            hexFiles = Directory.GetFiles(RepoDirectory, "*.hex", SearchOption.AllDirectories);
+            Log("Checking for games in: " + Path.GetFullPath(RepoDirectory));
+            if (Directory.Exists(RepoDirectory))
+                hexFiles = Directory.GetFiles(RepoDirectory, "*.hex", SearchOption.AllDirectories);
+            else
+                Log("Cannot find the directoy with the hex files. No game will be available.");
             Log("Loaded: " + hexFiles.Count() + " hex files");
         }
 
